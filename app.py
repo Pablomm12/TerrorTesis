@@ -9,7 +9,6 @@ from presentation import simulation_view as sim_view
 from presentation import optimization_view as opt_view
 from presentation import descarga_view as desc_view
 from presentation import materia_prima_view as mp_view
-import pandas as pd 
 
 # CONST FOR PAGE NAVIGATION
 DATA_VIEW_PAGE = "data_view_page"
