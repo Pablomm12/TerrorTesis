@@ -1,4 +1,4 @@
-# Example of how to access the stored matrix later
+## Example of how to access the stored matrix later
 #liberacion_orden_matrix = st.app_state[st.STATE_OPT][ref][pol]["liberacion_orden_matrix"]
 
 
@@ -3900,15 +3900,18 @@ def optimize_first_eslabon_cluster(
                 if isinstance(medoid_row, pd.Series):
                     print(f"      Medoid row name: {medoid_row.name}")
                     print(f"      Medoid row index: {medoid_row.index.tolist()}")
-                    
-            if hasattr(medoid_row, 'name') and medoid_row.name:
-                representative_raw_material = medoid_row.name
-                if verbose:
-                    print(f"      ✅ Extraído de medoid_row.name: {representative_raw_material}")
-            elif isinstance(medoid_row, pd.Series) and 'Nombre' in medoid_row.index:
+                    if 'Nombre' in medoid_row.index:
+                        print(f"      Medoid row['Nombre']: {medoid_row['Nombre']}")
+            
+            # ✅ CRITICAL: Prioritize 'Nombre' column over index (which might be numeric)
+            if isinstance(medoid_row, pd.Series) and 'Nombre' in medoid_row.index:
                 representative_raw_material = medoid_row['Nombre']
                 if verbose:
                     print(f"      ✅ Extraído de medoid_row['Nombre']: {representative_raw_material}")
+            elif hasattr(medoid_row, 'name') and medoid_row.name:
+                representative_raw_material = medoid_row.name
+                if verbose:
+                    print(f"      ✅ Extraído de medoid_row.name: {representative_raw_material}")
     
     # Try 2: From cluster_to_products
     if not representative_raw_material:
@@ -3926,16 +3929,16 @@ def optimize_first_eslabon_cluster(
             print(f"      ⚠️  Intentando fallback con df_clustered")
         cluster_rows = df_clustered[df_clustered['Cluster'] == cluster_id]
         if not cluster_rows.empty:
-            # Try name first (index)
-            if cluster_rows.iloc[0].name:
-                representative_raw_material = cluster_rows.iloc[0].name
-                if verbose:
-                    print(f"      ✅ Extraído del índice: {representative_raw_material}")
-            # Try 'Nombre' column
-            elif 'Nombre' in cluster_rows.columns:
+            # ✅ CRITICAL: Prioritize 'Nombre' column over index (which might be numeric)
+            if 'Nombre' in cluster_rows.columns:
                 representative_raw_material = cluster_rows.iloc[0]['Nombre']
                 if verbose:
                     print(f"      ✅ Extraído de columna 'Nombre': {representative_raw_material}")
+            # Fallback to index only if Nombre not available
+            elif cluster_rows.iloc[0].name:
+                representative_raw_material = cluster_rows.iloc[0].name
+                if verbose:
+                    print(f"      ✅ Extraído del índice: {representative_raw_material}")
     
     if not representative_raw_material:
         error_msg = f"No se pudo identificar materia prima representativa para cluster {cluster_id}"
@@ -3943,8 +3946,15 @@ def optimize_first_eslabon_cluster(
             print(f"   ❌ {error_msg}")
         return {"error": error_msg, "cluster_id": cluster_id}
     
+    # ✅ CRITICAL FIX: Convert to string if numeric type (from clustering/medoid)
+    # Sometimes medoid_row.name or cluster index returns numpy.int64 instead of string
+    if not isinstance(representative_raw_material, str):
+        if verbose:
+            print(f"   🔄 Convirtiendo tipo {type(representative_raw_material).__name__} a string")
+        representative_raw_material = str(representative_raw_material)
+    
     if verbose:
-        print(f"   ⭐ Materia prima representativa (extraída): {representative_raw_material}")
+        print(f"   ⭐ Materia prima representativa (extraída): {representative_raw_material} (tipo: {type(representative_raw_material).__name__})")
     
     # Step 3: Create replicas matrices for all raw materials
     try:
@@ -3957,6 +3967,7 @@ def optimize_first_eslabon_cluster(
         
         # ✅ CRITICAL FIX: Handle name vs code mismatch
         # User selects by NAME ("LEVADURA") but matrices are keyed by CODE ("1430.10.04")
+        # OR: Representative comes as string of number ("2") instead of actual name
         if representative_raw_material not in all_replicas_matrices:
             if verbose:
                 print(f"   ⚠️  '{representative_raw_material}' no encontrado directamente")

@@ -395,9 +395,10 @@ def replicas_POQ(matrizReplicas, data_dict, punto_venta, porcentaje_seguridad):
     
     # Shift ventas data to align simulation periods with actual sales
     ventas = shift_ventas_data_for_simulation(ventas_original) if ventas_original else None
-
+    
+    # ✅ CRITICAL FIX: For first eslabon, use first replica as ventas (no historical sales at factory)
     if ventas is None:
-        ventas = dict[int, Any ](enumerate[Any](matrizReplicas[0]))
+        ventas = dict(enumerate(matrizReplicas[0]))
         ventas = shift_ventas_data_for_simulation(ventas)
 
     costo_pedir = parametros.get("costo_pedir", 1)
@@ -499,9 +500,10 @@ def replicas_EOQ(matrizReplicas, data_dict, punto_venta, porcentaje_seguridad):
     
     # Shift ventas data to align simulation periods with actual sales
     ventas = shift_ventas_data_for_simulation(ventas_original) if ventas_original else None
-
+    
+    # ✅ CRITICAL FIX: For first eslabon, use first replica as ventas (no historical sales at factory)
     if ventas is None:
-        ventas = dict[int, Any ](enumerate[Any](matrizReplicas[0]))
+        ventas = dict(enumerate(matrizReplicas[0]))
         ventas = shift_ventas_data_for_simulation(ventas)
 
     # Calculate EOQ tamano_lote
@@ -611,9 +613,10 @@ def replicas_LXL(matrizReplicas, data_dict, punto_venta, porcentaje_seguridad):
     
     # Shift ventas data to align simulation periods with actual sales
     ventas = shift_ventas_data_for_simulation(ventas_original) if ventas_original else None
-
+    
+    # ✅ CRITICAL FIX: For first eslabon, use first replica as ventas (no historical sales at factory)
     if ventas is None:
-        ventas = dict[int, Any ](enumerate[Any](matrizReplicas[0]))
+        ventas = dict(enumerate(matrizReplicas[0]))
         ventas = shift_ventas_data_for_simulation(ventas)
 
     rp = {t: 0 for t in range(num_periodos)}
@@ -1600,6 +1603,11 @@ def replicas_QR_verbose(matrizReplicas, data_dict, punto_venta, Q, R):
     backorders = parametros.get("backorders", 1)
     ventas_original = resultados.get("ventas", {})
     ventas = shift_ventas_data_for_simulation(ventas_original) if ventas_original else None
+    
+    # ✅ CRITICAL FIX: For first eslabon, use first replica as ventas (no historical sales at factory)
+    if ventas is None:
+        ventas = dict(enumerate(matrizReplicas[0]))
+        ventas = shift_ventas_data_for_simulation(ventas)
 
     costo_pedir = parametros.get("costo_pedir", 1)
     costo_unitario = parametros.get("costo_unitario", 1)
@@ -1674,6 +1682,11 @@ def replicas_ST_verbose(matrizReplicas, data_dict, punto_venta, S, T):
 
     ventas_original = resultados.get("ventas", {})
     ventas = shift_ventas_data_for_simulation(ventas_original) if ventas_original else None
+    
+    # ✅ CRITICAL FIX: For first eslabon, use first replica as ventas (no historical sales at factory)
+    if ventas is None:
+        ventas = dict(enumerate(matrizReplicas[0]))
+        ventas = shift_ventas_data_for_simulation(ventas)
 
     num_periodos = 30
 
@@ -1730,6 +1743,11 @@ def replicas_SST_verbose(matrizReplicas, data_dict, punto_venta, s, S, T):
     resultados = sheets["RESULTADOS"]
     ventas_original = resultados.get("ventas", {})
     ventas = shift_ventas_data_for_simulation(ventas_original) if ventas_original else None
+    
+    # ✅ CRITICAL FIX: For first eslabon, use first replica as ventas (no historical sales at factory)
+    if ventas is None:
+        ventas = dict(enumerate(matrizReplicas[0]))
+        ventas = shift_ventas_data_for_simulation(ventas)
 
     inventario_inicial = parametros.get("inventario_inicial", 0)
     lead_time = parametros.get("lead time", 1)
@@ -1799,6 +1817,11 @@ def replicas_SS_verbose(matrizReplicas, data_dict, punto_venta, S, s):
     
     ventas_original = resultados.get("ventas", {})
     ventas = shift_ventas_data_for_simulation(ventas_original) if ventas_original else None
+    
+    # ✅ CRITICAL FIX: For first eslabon, use first replica as ventas (no historical sales at factory)
+    if ventas is None:
+        ventas = dict(enumerate(matrizReplicas[0]))
+        ventas = shift_ventas_data_for_simulation(ventas)
 
     inventario_inicial = parametros.get("inventario_inicial", 0)
     lead_time = parametros.get("lead time", 1)
@@ -1843,8 +1866,16 @@ def replicas_SS_verbose(matrizReplicas, data_dict, punto_venta, S, s):
         columns=[f"Replica {i+1}" for i in range(len(matrizReplicas))]
     )
 
+    # ✅ CRITICAL FIX: Use pronosticos if ventas not available (e.g., first eslabon)
+    if ventas is None or not ventas:
+        # Use the first replica's pronosticos as the "official" simulation
+        ventas_oficial = dict(enumerate(matrizReplicas[0]))
+        ventas_oficial = shift_pronosticos_data_for_simulation(ventas_oficial)
+    else:
+        ventas_oficial = ventas
+    
     resultadosSS_oficial = simular_politica_SS(
-            ventas, rp, inventario_inicial, lead_time,
+            ventas_oficial, rp, inventario_inicial, lead_time,
             s, S, num_periodos, primer_periodo, backorders, moq
     )
 
@@ -1884,6 +1915,11 @@ def replicas_POQ_verbose(matrizReplicas, data_dict, punto_venta, porcentaje_segu
     
     # Shift ventas data to align simulation periods with actual sales
     ventas = shift_ventas_data_for_simulation(ventas_original) if ventas_original else None
+    
+    # ✅ CRITICAL FIX: For first eslabon, use first replica as ventas (no historical sales at factory)
+    if ventas is None:
+        ventas = dict(enumerate(matrizReplicas[0]))
+        ventas = shift_ventas_data_for_simulation(ventas)
 
     costo_pedir = parametros.get("costo_pedir", 1)
     costo_unitario = parametros.get("costo_unitario", 1)
@@ -1996,6 +2032,11 @@ def replicas_EOQ_verbose(matrizReplicas, data_dict, punto_venta, porcentaje_segu
     
     # Shift ventas data to align simulation periods with actual sales
     ventas = shift_ventas_data_for_simulation(ventas_original) if ventas_original else None
+    
+    # ✅ CRITICAL FIX: For first eslabon, use first replica as ventas (no historical sales at factory)
+    if ventas is None:
+        ventas = dict(enumerate(matrizReplicas[0]))
+        ventas = shift_ventas_data_for_simulation(ventas)
 
     costo_pedir = parametros.get("costo_pedir", 25)
     costo_unitario = parametros.get("costo_unitario", 2) 
@@ -2109,6 +2150,11 @@ def replicas_LXL_verbose(matrizReplicas, data_dict, punto_venta, porcentaje_segu
     
     # Shift ventas data to align simulation periods with actual sales
     ventas = shift_ventas_data_for_simulation(ventas_original) if ventas_original else None
+    
+    # ✅ CRITICAL FIX: For first eslabon, use first replica as ventas (no historical sales at factory)
+    if ventas is None:
+        ventas = dict(enumerate(matrizReplicas[0]))
+        ventas = shift_ventas_data_for_simulation(ventas)
 
     rp = {t: 0 for t in range(num_periodos)}
     # Fix: Use the correct parameter name for daily demand

@@ -46,24 +46,20 @@ def map_particle_to_decisions(policy: str, particle: np.ndarray, bounds: List[Tu
         if T < 1: T = 1
         return {"S": S, "T": T}
 
-    if policy in ("SST"):
-        # particle = [s, S, T]
+    # ✅ CRITICAL: Check SS BEFORE SST to avoid index error
+    if policy == "SS":
+        # particle = [s, S] - ONLY 2 parameters, NO T!
+        s = int(round(p[0]))
+        S = int(round(p[1]))
+        return {"s": s, "S": S}
+
+    if policy == "SST":
+        # particle = [s, S, T] - 3 parameters!
         s = int(round(p[0]))
         S = int(round(p[1]))
         T = int(round(p[2]))
         if T < 1: T = 1
         return {"s": s, "S": S, "T": T}
-
-    if policy in ("SS"):
-        # particle = [s, S]
-        s = int(round(p[0]))
-        S = int(round(p[1]))
-        decision_vars = {"s": s, "S": S}
-        # Debug: verify SS policy only has s and S
-        if len(p) > 2:
-            print(f"WARNING: SS policy received {len(p)} parameters but should only have 2 (s, S)")
-            print(f"Particle received: {p}")
-        return decision_vars
 
     if policy == "EOQ":
         porcentaje = float(p[0])  # Remove the max(1.0, ...) constraint
@@ -555,6 +551,13 @@ def pso_optimize_single_policy(
     ingredient_info : dict, optional
         Información adicional específica de ingredientes para el reporte Excel.
     """
+    
+    # ✅ CRITICAL: Verify policy and bounds match
+    if verbose:
+        print(f"🎯 PSO Iniciando para política: '{policy}'")
+        print(f"   Bounds recibidos: {decision_bounds} (dimensión: {len(decision_bounds)})")
+        if policy.upper() == "SS" and len(decision_bounds) != 2:
+            print(f"   ⚠️  ERROR: SS policy debe tener 2 bounds (s, S) pero recibió {len(decision_bounds)}")
 
     dim = len(decision_bounds)  # número de variables de decisión
 
@@ -858,7 +861,24 @@ def get_decision_bounds_for_policy(policy: str, pv: str, data_dict: dict):
         t_bounds = (1, 12)
         return [s_bounds, t_bounds]
 
-    elif policy in ("SST"):
+    # ✅ CRITICAL: Check SS BEFORE SST to avoid confusion
+    elif policy == "SS":
+        # (s, S) sin periodo fijo - ONLY 2 parameters!
+        print(f"   ✅ Matched SS policy - generating 2 bounds (s, S)")
+        
+        s_low = mu * LT
+        s_bounds = (max(1, s_low * 0.5), s_low * 1.2)
+
+        S_up = s_low + (mu * 4)
+        S_bounds = (S_up * 0.8, S_up * 1.5)
+
+        print(f"   📊 SS Bounds: s={s_bounds}, S={S_bounds}")
+        return [s_bounds, S_bounds]
+
+    elif policy == "SST":
+        # (s, S, T) con periodo fijo - 3 parameters!
+        print(f"   ✅ Matched SST policy - generating 3 bounds (s, S, T)")
+        
         # s: punto de reorden bajo
         s_low = mu * LT
         s_bounds = (max(1, s_low * 0.5), s_low * 1.2)
@@ -869,16 +889,9 @@ def get_decision_bounds_for_policy(policy: str, pv: str, data_dict: dict):
 
         # T: frecuencia
         t_bounds = (1, 12)
+        
+        print(f"   📊 SST Bounds: s={s_bounds}, S={S_bounds}, T={t_bounds}")
         return [s_bounds, S_bounds, t_bounds]
-
-    elif policy in ("SS"):
-        # (s, S) sin periodo fijo
-        s_low = mu * LT
-        s_bounds = (max(1, s_low * 0.5), s_low * 1.2)
-
-        S_up = s_low + (mu * 4)
-        S_bounds = (S_up * 0.8, S_up * 1.5)
-        return [s_bounds, S_bounds]
 
     elif policy in ("EOQ", "POQ", "LXL"):
         # porcentaje de seguridad en stock - more conservative for ingredients
