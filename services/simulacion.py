@@ -396,6 +396,10 @@ def replicas_POQ(matrizReplicas, data_dict, punto_venta, porcentaje_seguridad):
     # Shift ventas data to align simulation periods with actual sales
     ventas = shift_ventas_data_for_simulation(ventas_original) if ventas_original else None
 
+    if ventas is None:
+        ventas = dict[int, Any ](enumerate[Any](matrizReplicas[0]))
+        ventas = shift_ventas_data_for_simulation(ventas)
+
     costo_pedir = parametros.get("costo_pedir", 1)
     costo_unitario = parametros.get("costo_unitario", 1)
     costo_faltante = parametros.get("costo_faltante", 1)
@@ -495,6 +499,10 @@ def replicas_EOQ(matrizReplicas, data_dict, punto_venta, porcentaje_seguridad):
     
     # Shift ventas data to align simulation periods with actual sales
     ventas = shift_ventas_data_for_simulation(ventas_original) if ventas_original else None
+
+    if ventas is None:
+        ventas = dict[int, Any ](enumerate[Any](matrizReplicas[0]))
+        ventas = shift_ventas_data_for_simulation(ventas)
 
     # Calculate EOQ tamano_lote
     costo_pedir = parametros.get("costo_pedir", 1)
@@ -603,6 +611,10 @@ def replicas_LXL(matrizReplicas, data_dict, punto_venta, porcentaje_seguridad):
     
     # Shift ventas data to align simulation periods with actual sales
     ventas = shift_ventas_data_for_simulation(ventas_original) if ventas_original else None
+
+    if ventas is None:
+        ventas = dict[int, Any ](enumerate[Any](matrizReplicas[0]))
+        ventas = shift_ventas_data_for_simulation(ventas)
 
     rp = {t: 0 for t in range(num_periodos)}
     # Fix: Use the correct parameter name for daily demand
